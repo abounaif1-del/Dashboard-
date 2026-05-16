@@ -1,0 +1,653 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Emergency Response Dashboard 2026 - Location Linked</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 20px;
+            min-height: 100vh;
+        }
+        
+        .dashboard-container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+        
+        .dashboard-header {
+            background: white;
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            margin-bottom: 25px;
+            text-align: center;
+        }
+        
+        .dashboard-header h1 {
+            color: #2d3748;
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }
+        
+        .dashboard-header p {
+            color: #718096;
+            font-size: 1.1em;
+        }
+        
+        .action-buttons {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+            margin-top: 20px;
+            flex-wrap: wrap;
+        }
+        
+        .btn {
+            padding: 12px 30px;
+            border: none;
+            border-radius: 8px;
+            font-size: 1em;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .btn-primary {
+            background: #667eea;
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            background: #5a67d8;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+        
+        .btn-success {
+            background: #48bb78;
+            color: white;
+        }
+        
+        .btn-success:hover {
+            background: #38a169;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(72, 187, 120, 0.4);
+        }
+        
+        .btn-warning {
+            background: #ed8936;
+            color: white;
+        }
+        
+        .btn-warning:hover {
+            background: #dd6b20;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(237, 137, 54, 0.4);
+        }
+        
+        .btn-info {
+            background: #4299e1;
+            color: white;
+        }
+        
+        .btn-info:hover {
+            background: #3182ce;
+            transform: translateY(-2px);
+        }
+        
+        .filters-section {
+            background: white;
+            padding: 25px;
+            border-radius: 15px;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.15);
+            margin-bottom: 25px;
+        }
+        
+        .filters-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+        }
+        
+        .filter-group {
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .filter-group label {
+            font-weight: 600;
+            color: #2d3748;
+            margin-bottom: 8px;
+            font-size: 0.95em;
+        }
+        
+        .filter-group select {
+            padding: 10px 15px;
+            border: 2px solid #e2e8f0;
+            border-radius: 8px;
+            font-size: 1em;
+            transition: all 0.3s;
+        }
+        
+        .filter-group select:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+        
+        .kpi-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 20px;
+            margin-bottom: 25px;
+        }
+        
+        .kpi-card {
+            background: white;
+            padding: 25px;
+            border-radius: 15px;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.15);
+            transition: all 0.3s;
+        }
+        
+        .kpi-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 15px 35px rgba(0,0,0,0.2);
+        }
+        
+        .kpi-card h3 {
+            color: #718096;
+            font-size: 0.9em;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 15px;
+        }
+        
+        .kpi-value {
+            font-size: 3em;
+            font-weight: bold;
+            color: #2d3748;
+            margin-bottom: 10px;
+        }
+        
+        .kpi-card.primary .kpi-value { color: #667eea; }
+        .kpi-card.success .kpi-value { color: #48bb78; }
+        .kpi-card.warning .kpi-value { color: #ed8936; }
+        .kpi-card.danger .kpi-value { color: #f56565; }
+        .kpi-card.info .kpi-value { color: #4299e1; }
+        
+        .charts-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(500px, 1fr));
+            gap: 25px;
+            margin-bottom: 25px;
+        }
+        
+        .chart-card {
+            background: white;
+            padding: 25px;
+            border-radius: 15px;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.15);
+        }
+        
+        .chart-card h2 {
+            color: #2d3748;
+            font-size: 1.3em;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 3px solid #667eea;
+        }
+        
+        .chart-container {
+            position: relative;
+            height: 350px;
+        }
+        
+        .full-width {
+            grid-column: 1 / -1;
+        }
+        
+        @media (max-width: 768px) {
+            .charts-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .dashboard-header h1 {
+                font-size: 1.8em;
+            }
+            
+            .kpi-value {
+                font-size: 2.5em;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="dashboard-container">
+        <!-- Header -->
+        <div class="dashboard-header">
+            <h1>🚨 Emergency Response Dashboard 2026</h1>
+            <p>Real-time monitoring with location-based analytics</p>
+            
+            <div class="action-buttons">
+                <button class="btn btn-primary" onclick="window.location.href='data_entry_with_locations.html'">
+                    ✏️ Edit Data Entry
+                </button>
+                <button class="btn btn-info" onclick="window.location.href='detailed_report.html'">
+                    📊 View Detailed Report
+                </button>
+                <button class="btn btn-success" onclick="exportToExcel()">
+                    📥 Export Data
+                </button>
+            </div>
+        </div>
+        
+        <!-- Filters Section -->
+        <div class="filters-section">
+            <h2 style="margin-bottom: 20px; color: #2d3748;">📊 Dynamic Filters</h2>
+            <div class="filters-grid">
+                <div class="filter-group">
+                    <label for="monthFilter">Select Month:</label>
+                    <select id="monthFilter">
+                        <option value="all">All Months</option>
+                        <option value="Jan">January</option>
+                        <option value="Feb">February</option>
+                        <option value="Mar">March</option>
+                        <option value="Apr">April</option>
+                        <option value="May">May</option>
+                        <option value="Jun">June</option>
+                        <option value="Jul">July</option>
+                        <option value="Aug">August</option>
+                        <option value="Sep">September</option>
+                        <option value="Oct">October</option>
+                        <option value="Nov">November</option>
+                        <option value="Dec">December</option>
+                    </select>
+                </div>
+                
+                <div class="filter-group">
+                    <label for="locationFilter">Emergency Location:</label>
+                    <select id="locationFilter">
+                        <option value="all">All Locations</option>
+                        <option value="PDH">PDH</option>
+                        <option value="PP">PP</option>
+                        <option value="LDPE">LDPE</option>
+                        <option value="HDPE">HDPE</option>
+                        <option value="AA">AA</option>
+                        <option value="EC">EC</option>
+                        <option value="But">But</option>
+                        <option value="SAP">SAP</option>
+                        <option value="Subst">Subst</option>
+                        <option value="AdmBlg">AdmBlg</option>
+                        <option value="Logistic">Logistic</option>
+                    </select>
+                </div>
+            </div>
+            <button class="btn btn-primary" style="margin-top: 20px;" onclick="resetFilters()">🔄 Reset Filters</button>
+        </div>
+        
+        <!-- KPI Cards -->
+        <div class="kpi-grid">
+            <div class="kpi-card primary">
+                <h3>Total Site Visits</h3>
+                <div class="kpi-value" id="totalSiteVisits">0</div>
+                <p style="color: #718096;">Cumulative visits</p>
+            </div>
+            
+            <div class="kpi-card success">
+                <h3>ERT Trained</h3>
+                <div class="kpi-value" id="totalERTTrained">0</div>
+                <p style="color: #718096;">Total personnel trained</p>
+            </div>
+            
+            <div class="kpi-card warning">
+                <h3>Total Roadblocks</h3>
+                <div class="kpi-value" id="totalRoadblocks">0</div>
+                <p style="color: #718096;">Incidents recorded</p>
+            </div>
+            
+            <div class="kpi-card danger">
+                <h3>Total Alarms</h3>
+                <div class="kpi-value" id="totalAlarms">0</div>
+                <p style="color: #718096;">Alarm responses</p>
+            </div>
+            
+            <div class="kpi-card info">
+                <h3>Emergency Responses</h3>
+                <div class="kpi-value" id="totalEmergencies">0</div>
+                <p style="color: #718096;">Total responses</p>
+            </div>
+            
+            <div class="kpi-card">
+                <h3>Equipment Isolated</h3>
+                <div class="kpi-value" id="totalEquipment">0</div>
+                <p style="color: #718096;">Total incidents</p>
+            </div>
+        </div>
+        
+        <!-- Charts -->
+        <div class="charts-grid">
+            <div class="chart-card">
+                <h2>📈 Emergency Response per Month</h2>
+                <div class="chart-container">
+                    <canvas id="emergencyResponseChart"></canvas>
+                </div>
+            </div>
+            
+            <div class="chart-card">
+                <h2>🎓 ERT Training per Month</h2>
+                <div class="chart-container">
+                    <canvas id="ertTrainingChart"></canvas>
+                </div>
+            </div>
+            
+            <div class="chart-card">
+                <h2>🚨 Alarms per Month</h2>
+                <div class="chart-container">
+                    <canvas id="alarmsChart"></canvas>
+                </div>
+            </div>
+            
+            <div class="chart-card">
+                <h2>📍 Emergency Locations Distribution</h2>
+                <div class="chart-container">
+                    <canvas id="locationsChart"></canvas>
+                </div>
+            </div>
+            
+            <div class="chart-card full-width">
+                <h2>📊 Roadblocks & Equipment Isolated by Month</h2>
+                <div class="chart-container" style="height: 300px;">
+                    <canvas id="roadblocksChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        // Data storage
+        let locationData = [];
+        const metadata = {
+            locations: ['PDH', 'PP', 'LDPE', 'HDPE', 'AA', 'EC', 'But', 'SAP', 'Subst', 'AdmBlg', 'Logistic']
+        };
+        const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+        let charts = {};
+        
+        // Load data
+        function loadData() {
+            const stored = localStorage.getItem('emergencyLocationData');
+            if (stored) {
+                locationData = JSON.parse(stored);
+            } else {
+                locationData = [];
+            }
+        }
+        
+        // Aggregate location data by month
+        function aggregateByMonth() {
+            const monthFilter = document.getElementById('monthFilter').value;
+            const locationFilter = document.getElementById('locationFilter').value;
+            
+            // Filter data
+            let filtered = locationData;
+            if (monthFilter !== 'all') {
+                filtered = filtered.filter(d => d.Month === monthFilter);
+            }
+            if (locationFilter !== 'all') {
+                filtered = filtered.filter(d => d.Location === locationFilter);
+            }
+            
+            // Aggregate by month
+            const aggregated = {};
+            months.forEach(month => {
+                aggregated[month] = {
+                    Month: month,
+                    Alarm_Respond: 0,
+                    Emergency_Responses: 0,
+                    Num_ERT_Trained: 0,
+                    Road_Blocked: 0,
+                    Emergency_Equipment_Isolated: 0,
+                    Num_Site_Visit: 0
+                };
+            });
+            
+            filtered.forEach(row => {
+                if (aggregated[row.Month]) {
+                    aggregated[row.Month].Alarm_Respond += row.Alarm_Respond || 0;
+                    aggregated[row.Month].Emergency_Responses += row.Emergency_Responses || 0;
+                    aggregated[row.Month].Num_ERT_Trained += row.Num_ERT_Trained || 0;
+                    aggregated[row.Month].Road_Blocked += row.Road_Blocked || 0;
+                    aggregated[row.Month].Emergency_Equipment_Isolated += row.Emergency_Equipment_Isolated || 0;
+                    aggregated[row.Month].Num_Site_Visit += row.Num_Site_Visit || 0;
+                }
+            });
+            
+            return months.map(m => aggregated[m]);
+        }
+        
+        // Calculate location distribution
+        function calculateLocationDistribution() {
+            const monthFilter = document.getElementById('monthFilter').value;
+            
+            const filteredData = monthFilter === 'all' 
+                ? locationData 
+                : locationData.filter(d => d.Month === monthFilter);
+            
+            const locationCounts = {};
+            metadata.locations.forEach(loc => {
+                locationCounts[loc] = 0;
+            });
+            
+            filteredData.forEach(row => {
+                if (locationCounts.hasOwnProperty(row.Location)) {
+                    locationCounts[row.Location] += 
+                        (row.Alarm_Respond || 0) +
+                        (row.Emergency_Responses || 0) +
+                        (row.Road_Blocked || 0) +
+                        (row.Emergency_Equipment_Isolated || 0);
+                }
+            });
+            
+            return metadata.locations.map(loc => locationCounts[loc]);
+        }
+        
+        // Update dashboard
+        function updateDashboard() {
+            const data = aggregateByMonth();
+            updateKPIs(data);
+            updateCharts(data);
+        }
+        
+        // Update KPIs
+        function updateKPIs(data) {
+            const totals = {
+                siteVisits: 0,
+                ertTrained: 0,
+                roadblocks: 0,
+                alarms: 0,
+                emergencies: 0,
+                equipment: 0
+            };
+            
+            data.forEach(row => {
+                totals.siteVisits += row.Num_Site_Visit || 0;
+                totals.ertTrained += row.Num_ERT_Trained || 0;
+                totals.roadblocks += row.Road_Blocked || 0;
+                totals.alarms += row.Alarm_Respond || 0;
+                totals.emergencies += row.Emergency_Responses || 0;
+                totals.equipment += row.Emergency_Equipment_Isolated || 0;
+            });
+            
+            document.getElementById('totalSiteVisits').textContent = totals.siteVisits;
+            document.getElementById('totalERTTrained').textContent = totals.ertTrained;
+            document.getElementById('totalRoadblocks').textContent = totals.roadblocks;
+            document.getElementById('totalAlarms').textContent = totals.alarms;
+            document.getElementById('totalEmergencies').textContent = totals.emergencies;
+            document.getElementById('totalEquipment').textContent = totals.equipment;
+        }
+        
+        // Update charts
+        function updateCharts(data) {
+            const monthLabels = data.map(d => d.Month);
+            
+            // Emergency Response Chart
+            updateChart('emergencyResponseChart', {
+                type: 'line',
+                data: {
+                    labels: monthLabels,
+                    datasets: [{
+                        label: 'Emergency Responses',
+                        data: data.map(d => d.Emergency_Responses || 0),
+                        borderColor: '#f56565',
+                        backgroundColor: 'rgba(245, 101, 101, 0.1)',
+                        tension: 0.4,
+                        fill: true
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: true } }
+                }
+            });
+            
+            // ERT Training Chart
+            updateChart('ertTrainingChart', {
+                type: 'bar',
+                data: {
+                    labels: monthLabels,
+                    datasets: [{
+                        label: 'ERT Trained',
+                        data: data.map(d => d.Num_ERT_Trained || 0),
+                        backgroundColor: '#48bb78'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: true } }
+                }
+            });
+            
+            // Alarms Chart
+            updateChart('alarmsChart', {
+                type: 'line',
+                data: {
+                    labels: monthLabels,
+                    datasets: [{
+                        label: 'Alarm Responses',
+                        data: data.map(d => d.Alarm_Respond || 0),
+                        borderColor: '#667eea',
+                        backgroundColor: 'rgba(102, 126, 234, 0.1)',
+                        tension: 0.4,
+                        fill: true
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: true } }
+                }
+            });
+            
+            // Locations Chart
+            updateChart('locationsChart', {
+                type: 'doughnut',
+                data: {
+                    labels: metadata.locations,
+                    datasets: [{
+                        data: calculateLocationDistribution(),
+                        backgroundColor: [
+                            '#667eea', '#764ba2', '#f56565', '#ed8936', 
+                            '#48bb78', '#4299e1', '#9f7aea', '#ed64a6',
+                            '#38b2ac', '#ecc94b', '#f6ad55'
+                        ]
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { position: 'right' } }
+                }
+            });
+            
+            // Roadblocks Chart
+            updateChart('roadblocksChart', {
+                type: 'bar',
+                data: {
+                    labels: monthLabels,
+                    datasets: [
+                        {
+                            label: 'Roadblocks',
+                            data: data.map(d => d.Road_Blocked || 0),
+                            backgroundColor: '#ed8936'
+                        },
+                        {
+                            label: 'Equipment Isolated',
+                            data: data.map(d => d.Emergency_Equipment_Isolated || 0),
+                            backgroundColor: '#9f7aea'
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: true } }
+                }
+            });
+        }
+        
+        function updateChart(canvasId, config) {
+            if (charts[canvasId]) {
+                charts[canvasId].destroy();
+            }
+            const ctx = document.getElementById(canvasId).getContext('2d');
+            charts[canvasId] = new Chart(ctx, config);
+        }
+        
+        // Reset filters
+        function resetFilters() {
+            document.getElementById('monthFilter').value = 'all';
+            document.getElementById('locationFilter').value = 'all';
+            updateDashboard();
+        }
+        
+        // Export to Excel
+        function exportToExcel() {
+            if (locationData.length === 0) {
+                alert('No data to export!');
+                return;
+            }
+            
+            const ws = XLSX.utils.json_to_sheet(locationData);
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, 'Emergency Data');
+            XLSX.writeFile(wb, 'Emergency_Dashboard_Export_' + new Date().toISOString().split('T')[0] + '.xlsx');
+        }
+        
+        // Event listeners
+        document.getElementById('monthFilter').addEventListener('change', updateDashboard);
+        document.getElementById('locationFilter').addEventListener('change', updateDashboard);
+        
+        // Initialize
+        window.onload = function() {
+            loadData();
+            updateDashboard();
+        };
+    </script>
+</body>
+</html>
